@@ -29,9 +29,12 @@ class MyViewModel @Inject constructor(private val apiRepository: ApiRepository) 
                 // Filter out items with null or blank name
                 val filteredItems = result.filter { !it.name.isNullOrBlank() }
 
-                // Sort by listId and then name
-                val sortedItems =
-                    filteredItems.sortedWith(compareBy<ApiResult> { it.listId }.thenBy { it.name })
+                // Sort by listId and then by numeric part of the name (e.g., "Item XXX")
+                val sortedItems = filteredItems.sortedWith(
+                    compareBy<ApiResult> { it.listId }
+                        .thenBy { extractNumberFromName(it.name) }
+                        .thenBy { it.name }  // Fallback to lexicographical order if name is not numeric
+                )
 
                 _items.value = sortedItems
             } catch (e: Exception) {
@@ -43,7 +46,9 @@ class MyViewModel @Inject constructor(private val apiRepository: ApiRepository) 
         }
     }
 
-    companion object {
-        const val TAG = "ViewModel"
+    // Function to extract the numeric part from "Item XXX"
+    private fun extractNumberFromName(name: String?): Int {
+        val regex = "\\d+".toRegex()
+        return regex.find(name ?: "")?.value?.toIntOrNull() ?: Int.MAX_VALUE
     }
 }
